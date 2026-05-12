@@ -11,6 +11,7 @@ from tools.swecontext_materializer.github_ops import (
     list_branches_args,
     list_open_issues_args,
     list_open_prs_args,
+    list_tags_args,
     rename_repo_args,
     repo_view_args,
     update_main_ref_args,
@@ -175,4 +176,19 @@ def test_delete_cleanup_command_builders() -> None:
         "--paginate",
         "--jq",
         ".[].name",
+    ]
+    assert list_tags_args("wosuzyb", "astropy-15082") == [
+        "gh",
+        "api",
+        "repos/wosuzyb/astropy-15082/tags",
+        "--paginate",
+        "--jq",
+        ".[].name",
+    ]
+    assert delete_ref_args("wosuzyb", "astropy-15082", "tags/v1.0") == [
+        "gh",
+        "api",
+        "-X",
+        "DELETE",
+        "repos/wosuzyb/astropy-15082/git/refs/tags/v1.0",
     ]

@@ -54,6 +54,7 @@ def test_activate_task_reuses_existing_target_repo(monkeypatch) -> None:
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_open_issues", lambda *args, **kwargs: [1])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.close_open_prs", lambda *args, **kwargs: [])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_branches_except_main", lambda *args, **kwargs: [])
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_tags", lambda *args, **kwargs: [])
     monkeypatch.setattr(
         "tools.swecontext_materializer.active_repo.update_main_ref",
         lambda *args, **kwargs: calls.append(("update_ref", args)),
@@ -95,6 +96,7 @@ def test_activate_task_renames_existing_fork_when_target_missing(monkeypatch) ->
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_open_issues", lambda *args, **kwargs: [])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.close_open_prs", lambda *args, **kwargs: [])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_branches_except_main", lambda *args, **kwargs: [])
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_tags", lambda *args, **kwargs: [])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.update_main_ref", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         "tools.swecontext_materializer.active_repo.create_issue_return_number",
@@ -125,6 +127,10 @@ def test_activate_task_strong_cleanup_deletes_issues_closes_prs_and_deletes_bran
         "tools.swecontext_materializer.active_repo.delete_branches_except_main",
         lambda *args, **kwargs: calls.append(("delete_branches", args)) or ["old-task"],
     )
+    monkeypatch.setattr(
+        "tools.swecontext_materializer.active_repo.delete_tags",
+        lambda *args, **kwargs: calls.append(("delete_tags", args)) or ["v1.0"],
+    )
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.update_main_ref", lambda *args, **kwargs: None)
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.create_issue_return_number", lambda *args, **kwargs: 4)
 
@@ -133,6 +139,8 @@ def test_activate_task_strong_cleanup_deletes_issues_closes_prs_and_deletes_bran
     assert result.deleted_issues == [1, 2]
     assert result.closed_prs == [3]
     assert result.deleted_branches == ["old-task"]
+    assert result.deleted_tags == ["v1.0"]
     assert ("delete_issues", ("wosuzyb", "astropy-15082")) in calls
     assert ("close_prs", ("wosuzyb", "astropy-15082"), {"delete_branches": True, "dry_run": False}) in calls
     assert ("delete_branches", ("wosuzyb", "astropy-15082")) in calls
+    assert ("delete_tags", ("wosuzyb", "astropy-15082")) in calls

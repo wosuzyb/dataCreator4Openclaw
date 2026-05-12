@@ -1,5 +1,16 @@
 {
   "astropy__astropy-15082": {
-    "stage": "issue_created"
+    "active_repo": "wosuzyb/astropy-15082",
+    "base_commit": "c5e2521db013d9641999be9c79d1d807741bc39a",
+    "cleanup_issues": "delete",
+    "cleanup_prs": "close-and-delete-branches",
+    "closed_prs": [],
+    "deleted_branches": [],
+    "deleted_issues": [
+      1
+    ],
+    "issue_number": 3,
+    "stage": "task_activated",
+    "upstream_repo": "astropy/astropy"
   }
 }

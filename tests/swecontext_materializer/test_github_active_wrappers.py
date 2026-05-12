@@ -6,6 +6,7 @@ from tools.swecontext_materializer.github_ops import (
     create_issue_return_number,
     delete_branches_except_main,
     delete_open_issues,
+    delete_tags,
     find_existing_fork_name,
 )
 
@@ -114,6 +115,22 @@ def test_delete_branches_except_main_removes_every_other_branch() -> None:
     assert deleted == ["old-task", "feature/test"]
     assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/heads/old-task"] in runner.calls
     assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/heads/feature/test"] in runner.calls
+
+
+def test_delete_tags_removes_all_tags() -> None:
+    runner = FakeRunner(
+        {
+            "gh api repos/wosuzyb/astropy-15082/tags --paginate --jq .[].name": (
+                "v1.0\nrelease/2024\n"
+            )
+        }
+    )
+
+    deleted = delete_tags("wosuzyb", "astropy-15082", runner=runner)
+
+    assert deleted == ["v1.0", "release/2024"]
+    assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/tags/v1.0"] in runner.calls
+    assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/tags/release/2024"] in runner.calls
 
 
 def test_create_issue_return_number_parses_url() -> None:

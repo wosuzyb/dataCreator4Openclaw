@@ -79,6 +79,7 @@ It will:
 - delete old open issues by default
 - close old open PRs and delete their local head branches by default
 - delete every branch except `main` by default
+- delete every tag by default
 - force `main` to the task `base_commit`
 - create a new issue from `problem_statement`
 

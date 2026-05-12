@@ -116,7 +116,8 @@ def close_pr_args(owner: str, repo_name: str, number: int) -> list[str]:
 
 
 def delete_ref_args(owner: str, repo_name: str, branch: str) -> list[str]:
-    return ["gh", "api", "-X", "DELETE", f"repos/{owner}/{repo_name}/git/refs/heads/{branch}"]
+    ref = branch if branch.startswith("tags/") else f"heads/{branch}"
+    return ["gh", "api", "-X", "DELETE", f"repos/{owner}/{repo_name}/git/refs/{ref}"]
 
 
 def list_branches_args(owner: str, repo_name: str) -> list[str]:
@@ -124,6 +125,17 @@ def list_branches_args(owner: str, repo_name: str) -> list[str]:
         "gh",
         "api",
         f"repos/{owner}/{repo_name}/branches",
+        "--paginate",
+        "--jq",
+        ".[].name",
+    ]
+
+
+def list_tags_args(owner: str, repo_name: str) -> list[str]:
+    return [
+        "gh",
+        "api",
+        f"repos/{owner}/{repo_name}/tags",
         "--paginate",
         "--jq",
         ".[].name",
@@ -219,6 +231,18 @@ def delete_branches_except_main(owner: str, repo_name: str, runner=None, dry_run
             continue
         _run(delete_ref_args(owner, repo_name, branch), runner, dry_run)
         deleted.append(branch)
+    return deleted
+
+
+def delete_tags(owner: str, repo_name: str, runner=None, dry_run: bool = False) -> list[str]:
+    result = _run(list_tags_args(owner, repo_name), runner, dry_run)
+    if dry_run:
+        return []
+    tags = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    deleted: list[str] = []
+    for tag in tags:
+        _run(delete_ref_args(owner, repo_name, f"tags/{tag}"), runner, dry_run)
+        deleted.append(tag)
     return deleted
 
 

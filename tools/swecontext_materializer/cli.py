@@ -125,6 +125,7 @@ def cmd_activate_task(args: argparse.Namespace) -> int:
                     "deleted_issues": result.deleted_issues,
                     "closed_prs": result.closed_prs,
                     "deleted_branches": result.deleted_branches,
+                    "deleted_tags": result.deleted_tags,
                     "cleanup_issues": args.cleanup_issues,
                     "cleanup_prs": args.cleanup_prs,
                 },

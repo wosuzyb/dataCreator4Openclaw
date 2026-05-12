@@ -5,6 +5,7 @@ from .github_ops import (
     create_issue_return_number,
     delete_branches_except_main,
     delete_open_issues,
+    delete_tags,
     ensure_issues_enabled,
     find_existing_fork_name,
     fork_repo,
@@ -62,6 +63,7 @@ def activate_task(
         raise ValueError(f"unknown cleanup_prs value: {cleanup_prs}")
 
     deleted_branches = delete_branches_except_main(owner, target_repo, dry_run=dry_run)
+    deleted_tags = delete_tags(owner, target_repo, dry_run=dry_run)
     update_main_ref(owner, target_repo, task.base_commit, dry_run=dry_run)
     issue_number = create_issue_return_number(owner, target_repo, task.issue_title, task.issue_body, dry_run=dry_run)
 
@@ -74,4 +76,5 @@ def activate_task(
         deleted_issues=deleted_issues,
         closed_prs=closed_prs,
         deleted_branches=deleted_branches,
+        deleted_tags=deleted_tags,
     )

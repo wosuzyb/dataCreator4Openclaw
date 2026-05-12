@@ -36,3 +36,4 @@ class ActivationResult:
     deleted_issues: list[int] = field(default_factory=list)
     closed_prs: list[int] = field(default_factory=list)
     deleted_branches: list[str] = field(default_factory=list)
+    deleted_tags: list[str] = field(default_factory=list)
