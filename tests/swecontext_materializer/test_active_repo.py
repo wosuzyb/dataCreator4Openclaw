@@ -53,12 +53,10 @@ def test_activate_task_reuses_existing_target_repo(monkeypatch) -> None:
     )
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_open_issues", lambda *args, **kwargs: [1])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.close_open_prs", lambda *args, **kwargs: [])
-    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_branches_except_main", lambda *args, **kwargs: [])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_tags", lambda *args, **kwargs: [])
-    monkeypatch.setattr(
-        "tools.swecontext_materializer.active_repo.update_main_ref",
-        lambda *args, **kwargs: calls.append(("update_ref", args)),
-    )
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.get_default_branch", lambda *args, **kwargs: "main")
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.ensure_branch_ref", lambda *args, **kwargs: None)
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_branches_except", lambda *args, **kwargs: [])
     monkeypatch.setattr(
         "tools.swecontext_materializer.active_repo.create_issue_return_number",
         lambda *args, **kwargs: 2,
@@ -70,7 +68,32 @@ def test_activate_task_reuses_existing_target_repo(monkeypatch) -> None:
     assert result.issue_number == 2
     assert result.deleted_issues == [1]
     assert ("fork", ("astropy/astropy",)) not in calls
-    assert ("update_ref", ("wosuzyb", "astropy-15082", "abc123")) in calls
+
+
+def test_activate_task_renames_redirected_target_repo_to_actual_target(monkeypatch) -> None:
+    calls = []
+
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.repo_exists_by_name", lambda *args, **kwargs: True)
+    monkeypatch.setattr(
+        "tools.swecontext_materializer.active_repo.current_repo_name",
+        lambda owner, name, dry_run=False: "astropy-4973",
+    )
+    monkeypatch.setattr(
+        "tools.swecontext_materializer.active_repo.rename_repo",
+        lambda *args, **kwargs: calls.append(("rename", args)),
+    )
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.ensure_issues_enabled", lambda *args, **kwargs: None)
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_open_issues", lambda *args, **kwargs: [])
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.close_open_prs", lambda *args, **kwargs: [])
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_tags", lambda *args, **kwargs: [])
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.get_default_branch", lambda *args, **kwargs: "main")
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.ensure_branch_ref", lambda *args, **kwargs: None)
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_branches_except", lambda *args, **kwargs: [])
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.create_issue_return_number", lambda *args, **kwargs: 2)
+
+    activate_task([task()], "astropy__astropy-15082")
+
+    assert ("rename", ("wosuzyb", "astropy-4973", "astropy-15082")) in calls
 
 
 def test_activate_task_renames_existing_fork_when_target_missing(monkeypatch) -> None:
@@ -95,9 +118,10 @@ def test_activate_task_renames_existing_fork_when_target_missing(monkeypatch) ->
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.ensure_issues_enabled", lambda *args, **kwargs: None)
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_open_issues", lambda *args, **kwargs: [])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.close_open_prs", lambda *args, **kwargs: [])
-    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_branches_except_main", lambda *args, **kwargs: [])
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_tags", lambda *args, **kwargs: [])
-    monkeypatch.setattr("tools.swecontext_materializer.active_repo.update_main_ref", lambda *args, **kwargs: None)
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.get_default_branch", lambda *args, **kwargs: "main")
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.ensure_branch_ref", lambda *args, **kwargs: None)
+    monkeypatch.setattr("tools.swecontext_materializer.active_repo.delete_branches_except", lambda *args, **kwargs: [])
     monkeypatch.setattr(
         "tools.swecontext_materializer.active_repo.create_issue_return_number",
         lambda *args, **kwargs: 3,
@@ -124,14 +148,21 @@ def test_activate_task_strong_cleanup_deletes_issues_closes_prs_and_deletes_bran
         lambda *args, **kwargs: calls.append(("close_prs", args, kwargs)) or [3],
     )
     monkeypatch.setattr(
-        "tools.swecontext_materializer.active_repo.delete_branches_except_main",
-        lambda *args, **kwargs: calls.append(("delete_branches", args)) or ["old-task"],
+        "tools.swecontext_materializer.active_repo.delete_branches_except",
+        lambda *args, **kwargs: calls.append(("delete_branches", args, kwargs)) or ["old-task"],
     )
     monkeypatch.setattr(
         "tools.swecontext_materializer.active_repo.delete_tags",
         lambda *args, **kwargs: calls.append(("delete_tags", args)) or ["v1.0"],
     )
-    monkeypatch.setattr("tools.swecontext_materializer.active_repo.update_main_ref", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "tools.swecontext_materializer.active_repo.get_default_branch",
+        lambda *args, **kwargs: calls.append(("default_branch_read", args)) or "master",
+    )
+    monkeypatch.setattr(
+        "tools.swecontext_materializer.active_repo.ensure_branch_ref",
+        lambda *args, **kwargs: calls.append(("ensure_default_ref", args)),
+    )
     monkeypatch.setattr("tools.swecontext_materializer.active_repo.create_issue_return_number", lambda *args, **kwargs: 4)
 
     result = activate_task([task()], "astropy__astropy-15082")
@@ -142,5 +173,7 @@ def test_activate_task_strong_cleanup_deletes_issues_closes_prs_and_deletes_bran
     assert result.deleted_tags == ["v1.0"]
     assert ("delete_issues", ("wosuzyb", "astropy-15082")) in calls
     assert ("close_prs", ("wosuzyb", "astropy-15082"), {"delete_branches": True, "dry_run": False}) in calls
-    assert ("delete_branches", ("wosuzyb", "astropy-15082")) in calls
+    assert ("default_branch_read", ("wosuzyb", "astropy-15082")) in calls
+    assert ("ensure_default_ref", ("wosuzyb", "astropy-15082", "master", "abc123")) in calls
+    assert ("delete_branches", ("wosuzyb", "astropy-15082"), {"keep_branch": "master", "dry_run": False}) in calls
     assert ("delete_tags", ("wosuzyb", "astropy-15082")) in calls

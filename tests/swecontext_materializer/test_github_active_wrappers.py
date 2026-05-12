@@ -5,9 +5,11 @@ from tools.swecontext_materializer.github_ops import (
     close_open_prs,
     create_issue_return_number,
     delete_branches_except_main,
+    delete_branches_except,
     delete_open_issues,
     delete_tags,
     find_existing_fork_name,
+    get_default_branch,
 )
 
 
@@ -51,6 +53,19 @@ def test_find_existing_fork_name_returns_matching_parent() -> None:
     runner = FakeRunner({"gh repo list wosuzyb --json name,isFork,parent --limit 1000": json.dumps(repos)})
 
     assert find_existing_fork_name("wosuzyb", "astropy/astropy", runner=runner) == "astropy-15082"
+
+
+def test_find_existing_fork_name_matches_parent_owner_and_name() -> None:
+    repos = [
+        {
+            "name": "astropy-4973",
+            "isFork": True,
+            "parent": {"name": "astropy", "owner": {"login": "astropy"}},
+        }
+    ]
+    runner = FakeRunner({"gh repo list wosuzyb --json name,isFork,parent --limit 1000": json.dumps(repos)})
+
+    assert find_existing_fork_name("wosuzyb", "astropy/astropy", runner=runner) == "astropy-4973"
 
 
 def test_close_open_issues_closes_all_open_issues() -> None:
@@ -134,6 +149,29 @@ def test_delete_branches_except_main_removes_every_other_branch() -> None:
     assert deleted == ["old-task", "feature/test"]
     assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/heads/old-task"] in runner.calls
     assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/heads/feature/test"] in runner.calls
+
+
+def test_delete_branches_except_keeps_default_branch_even_when_it_is_master() -> None:
+    runner = FakeRunner(
+        {
+            "gh api repos/wosuzyb/sympy-11275/branches --paginate --jq .[].name": (
+                "main\nmaster\nfeature/test\n"
+            )
+        }
+    )
+
+    deleted = delete_branches_except("wosuzyb", "sympy-11275", keep_branch="master", runner=runner)
+
+    assert deleted == ["main", "feature/test"]
+    assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/sympy-11275/git/refs/heads/main"] in runner.calls
+    assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/sympy-11275/git/refs/heads/feature/test"] in runner.calls
+    assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/sympy-11275/git/refs/heads/master"] not in runner.calls
+
+
+def test_get_default_branch_reads_repo_default_branch() -> None:
+    runner = FakeRunner({"gh api repos/wosuzyb/sympy-11275 --jq .default_branch": "master\n"})
+
+    assert get_default_branch("wosuzyb", "sympy-11275", runner=runner) == "master"
 
 
 def test_delete_tags_removes_all_tags() -> None:

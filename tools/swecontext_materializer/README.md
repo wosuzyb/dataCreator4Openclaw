@@ -78,9 +78,9 @@ It will:
 - enable issues
 - delete old open issues by default
 - close old open PRs and delete their local head branches by default
-- delete every branch except `main` by default
+- delete every branch except the repository default branch by default
 - delete every tag by default
-- force `main` to the task `base_commit`
+- force the default branch to the task `base_commit`
 - create a new issue from `problem_statement`
 
 GitHub operations that commonly fail transiently during large cleanup runs, such

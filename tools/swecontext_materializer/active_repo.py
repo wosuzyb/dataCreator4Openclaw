@@ -3,15 +3,17 @@ from __future__ import annotations
 from .github_ops import (
     close_open_prs,
     create_issue_return_number,
-    delete_branches_except_main,
+    current_repo_name,
+    delete_branches_except,
     delete_open_issues,
     delete_tags,
     ensure_issues_enabled,
+    ensure_branch_ref,
     find_existing_fork_name,
     fork_repo,
+    get_default_branch,
     rename_repo,
     repo_exists_by_name,
-    update_main_ref,
 )
 from .models import ActivationResult, TaskManifest
 from .naming import active_repo_name
@@ -43,6 +45,10 @@ def activate_task(
             fork_repo(task.repo, dry_run=dry_run)
             upstream_repo_name = task.repo.split("/", 1)[1]
             rename_repo(owner, upstream_repo_name, target_repo, dry_run=dry_run)
+    else:
+        actual_repo = current_repo_name(owner, target_repo, dry_run=dry_run)
+        if actual_repo and actual_repo != target_repo:
+            rename_repo(owner, actual_repo, target_repo, dry_run=dry_run)
 
     ensure_issues_enabled(owner, target_repo, dry_run=dry_run)
 
@@ -62,9 +68,10 @@ def activate_task(
     elif cleanup_prs != "none":
         raise ValueError(f"unknown cleanup_prs value: {cleanup_prs}")
 
-    deleted_branches = delete_branches_except_main(owner, target_repo, dry_run=dry_run)
+    default_branch = get_default_branch(owner, target_repo, dry_run=dry_run)
+    ensure_branch_ref(owner, target_repo, default_branch, task.base_commit, dry_run=dry_run)
+    deleted_branches = delete_branches_except(owner, target_repo, keep_branch=default_branch, dry_run=dry_run)
     deleted_tags = delete_tags(owner, target_repo, dry_run=dry_run)
-    update_main_ref(owner, target_repo, task.base_commit, dry_run=dry_run)
     issue_number = create_issue_return_number(owner, target_repo, task.issue_title, task.issue_body, dry_run=dry_run)
 
     return ActivationResult(

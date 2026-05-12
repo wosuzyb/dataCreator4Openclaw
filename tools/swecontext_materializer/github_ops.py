@@ -10,6 +10,7 @@ from .models import TaskManifest
 
 
 Runner = Callable[[list[str], object | None, bool], object]
+DEFAULT_RETRIES = 12
 TRANSIENT_ERROR_PATTERNS = (
     "EOF",
     "TLS handshake timeout",
@@ -59,17 +60,55 @@ def enable_issues_args(owner: str, repo_name: str) -> list[str]:
 
 
 def update_main_ref_args(owner: str, repo_name: str, sha: str) -> list[str]:
+    return update_branch_ref_args(owner, repo_name, "main", sha)
+
+
+def update_branch_ref_args(owner: str, repo_name: str, branch: str, sha: str) -> list[str]:
     return [
         "gh",
         "api",
         "-X",
         "PATCH",
-        f"repos/{owner}/{repo_name}/git/refs/heads/main",
+        f"repos/{owner}/{repo_name}/git/refs/heads/{branch}",
         "-f",
         f"sha={sha}",
         "-F",
         "force=true",
     ]
+
+
+def create_main_ref_args(owner: str, repo_name: str, sha: str) -> list[str]:
+    return create_branch_ref_args(owner, repo_name, "main", sha)
+
+
+def create_branch_ref_args(owner: str, repo_name: str, branch: str, sha: str) -> list[str]:
+    return [
+        "gh",
+        "api",
+        "-X",
+        "POST",
+        f"repos/{owner}/{repo_name}/git/refs",
+        "-f",
+        f"ref=refs/heads/{branch}",
+        "-f",
+        f"sha={sha}",
+    ]
+
+
+def set_default_branch_args(owner: str, repo_name: str, branch: str) -> list[str]:
+    return [
+        "gh",
+        "api",
+        "-X",
+        "PATCH",
+        f"repos/{owner}/{repo_name}",
+        "-f",
+        f"default_branch={branch}",
+    ]
+
+
+def get_default_branch_args(owner: str, repo_name: str) -> list[str]:
+    return ["gh", "api", f"repos/{owner}/{repo_name}", "--jq", ".default_branch"]
 
 
 def list_open_issues_args(owner: str, repo_name: str) -> list[str]:
@@ -156,7 +195,13 @@ def is_transient_command_error(error: CommandError) -> bool:
     return any(pattern in message for pattern in TRANSIENT_ERROR_PATTERNS)
 
 
-def _run(args: list[str], runner=None, dry_run: bool = False, retries: int = 3, retry_delay_seconds: float = 1.0):
+def _run(
+    args: list[str],
+    runner=None,
+    dry_run: bool = False,
+    retries: int = DEFAULT_RETRIES,
+    retry_delay_seconds: float = 1.0,
+):
     attempt = 0
     while True:
         try:
@@ -173,9 +218,15 @@ def find_existing_fork_name(owner: str, upstream_repo: str, runner=None, dry_run
     result = _run(["gh", "repo", "list", owner, "--json", "name,isFork,parent", "--limit", "1000"], runner, dry_run)
     if dry_run:
         return None
+    upstream_owner, upstream_name = upstream_repo.split("/", 1)
     for repo in json.loads(result.stdout or "[]"):
         parent = repo.get("parent") or {}
-        if repo.get("isFork") and parent.get("nameWithOwner") == upstream_repo:
+        parent_owner = parent.get("owner") or {}
+        parent_name_with_owner = parent.get("nameWithOwner")
+        parent_matches = parent_name_with_owner == upstream_repo or (
+            parent.get("name") == upstream_name and parent_owner.get("login") == upstream_owner
+        )
+        if repo.get("isFork") and parent_matches:
             return repo["name"]
     return None
 
@@ -195,7 +246,53 @@ def fork_repo(upstream_repo: str, runner=None, dry_run: bool = False) -> None:
 
 
 def update_main_ref(owner: str, repo_name: str, sha: str, runner=None, dry_run: bool = False) -> None:
-    _run(update_main_ref_args(owner, repo_name, sha), runner, dry_run)
+    update_branch_ref(owner, repo_name, "main", sha, runner=runner, dry_run=dry_run)
+
+
+def update_branch_ref(
+    owner: str,
+    repo_name: str,
+    branch: str,
+    sha: str,
+    runner=None,
+    dry_run: bool = False,
+) -> None:
+    _run(update_branch_ref_args(owner, repo_name, branch, sha), runner, dry_run)
+
+
+def ensure_main_ref(owner: str, repo_name: str, sha: str, runner=None, dry_run: bool = False) -> None:
+    ensure_branch_ref(owner, repo_name, "main", sha, runner=runner, dry_run=dry_run)
+
+
+def ensure_branch_ref(
+    owner: str,
+    repo_name: str,
+    branch: str,
+    sha: str,
+    runner=None,
+    dry_run: bool = False,
+) -> None:
+    try:
+        _run(update_branch_ref_args(owner, repo_name, branch, sha), runner, dry_run)
+    except CommandError as exc:
+        message = f"{exc.result.stdout}\n{exc.result.stderr}"
+        if "Reference does not exist" not in message and "Not Found" not in message:
+            raise
+        _run(create_branch_ref_args(owner, repo_name, branch, sha), runner, dry_run)
+
+
+def set_default_branch(owner: str, repo_name: str, branch: str, runner=None, dry_run: bool = False) -> None:
+    _run(set_default_branch_args(owner, repo_name, branch), runner, dry_run)
+
+
+def get_default_branch(owner: str, repo_name: str, runner=None, dry_run: bool = False) -> str:
+    result = _run(get_default_branch_args(owner, repo_name), runner, dry_run)
+    if dry_run:
+        return "main"
+    branch = result.stdout.strip()
+    if not branch:
+        raise ValueError(f"could not determine default branch for {owner}/{repo_name}")
+    return branch
 
 
 def close_open_issues(owner: str, repo_name: str, runner=None, dry_run: bool = False) -> list[int]:
@@ -244,13 +341,23 @@ def close_open_prs(owner: str, repo_name: str, delete_branches: bool, runner=Non
 
 
 def delete_branches_except_main(owner: str, repo_name: str, runner=None, dry_run: bool = False) -> list[str]:
+    return delete_branches_except(owner, repo_name, keep_branch="main", runner=runner, dry_run=dry_run)
+
+
+def delete_branches_except(
+    owner: str,
+    repo_name: str,
+    keep_branch: str,
+    runner=None,
+    dry_run: bool = False,
+) -> list[str]:
     result = _run(list_branches_args(owner, repo_name), runner, dry_run)
     if dry_run:
         return []
     branches = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     deleted: list[str] = []
     for branch in branches:
-        if branch == "main":
+        if branch == keep_branch:
             continue
         _run(delete_ref_args(owner, repo_name, branch), runner, dry_run)
         deleted.append(branch)
@@ -298,7 +405,7 @@ def create_issue_return_number(
 
 def repo_exists(task: TaskManifest, dry_run: bool = False) -> bool:
     try:
-        run_command(repo_view_args(task), cwd=None, dry_run=dry_run)
+        _run(repo_view_args(task), dry_run=dry_run)
         return True
     except CommandError:
         return False
@@ -306,10 +413,25 @@ def repo_exists(task: TaskManifest, dry_run: bool = False) -> bool:
 
 def repo_exists_by_name(owner: str, repo_name: str, dry_run: bool = False) -> bool:
     try:
-        run_command(["gh", "repo", "view", f"{owner}/{repo_name}"], cwd=None, dry_run=dry_run)
+        _run(["gh", "repo", "view", f"{owner}/{repo_name}"], dry_run=dry_run)
         return True
     except CommandError:
         return False
+
+
+def current_repo_name(owner: str, repo_name: str, runner=None, dry_run: bool = False) -> str | None:
+    result = _run(
+        ["gh", "repo", "view", f"{owner}/{repo_name}", "--json", "nameWithOwner"],
+        runner,
+        dry_run,
+    )
+    if dry_run:
+        return repo_name
+    payload = json.loads(result.stdout or "{}")
+    actual = payload.get("nameWithOwner")
+    if not actual:
+        return None
+    return actual.split("/", 1)[1]
 
 
 def create_repo(task: TaskManifest, dry_run: bool = False) -> str:
@@ -317,9 +439,9 @@ def create_repo(task: TaskManifest, dry_run: bool = False) -> str:
         return "dry_run"
     if repo_exists(task, dry_run=dry_run):
         return "already_present"
-    run_command(create_repo_args(task), cwd=None, dry_run=dry_run)
+    _run(create_repo_args(task), dry_run=dry_run)
     return "created"
 
 
 def create_issue(task: TaskManifest, dry_run: bool = False) -> None:
-    run_command(create_issue_args(task), cwd=None, dry_run=dry_run)
+    _run(create_issue_args(task), dry_run=dry_run)
