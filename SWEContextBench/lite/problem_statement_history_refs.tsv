@@ -1,0 +1,35 @@
+instance_id	repo	title	pr_refs	commit_refs	urls	notes
+astropy__astropy-15082	astropy/astropy	Bugfix for collapses with NDData without masks, or without units	#14175,#14995			
+django__django-21204	django/django	Query.defer() failure - deferred columns calculated per table instead per alias			https://github.com/akaariai/django/compare/only_load_bug	compare_url
+django__django-25916	django/django	Add lastmod support to sitemapindex	#5814		https://github.com/django/django/pull/5814	
+django__django-27995	django/django	Raise a descriptive error on unsupported operations following QuerySet.union(), intersection(), and difference().	#27982,#27990			
+django__django-28147	django/django	Saving parent object after setting on child leads to unexpected data loss	#8434		https://github.com/django/django/pull/8434	
+django__django-29124	django/django	Generated migration orders RemoveField and AlterUniqueTogether incorrectly, causing FieldDoesNotExist	#29123			
+django__django-29838	django/django	Hashing list in Q objects when using __in lookup	#29643			
+django__django-30254	django/django	Custom model metaclasses cannot access the attribute dict in __init__		3e1e67021e0a20783ed59e17b43e3c481897fce3	https://github.com/wagtail/wagtail/blob/3e1e67021e0a20783ed59e17b43e3c481897fce3/	
+django__django-31051	django/django	Serialization dependency sorting disallows circular references unneccesarily.	#26291,#26552,#16317			
+django__django-31504	django/django	Allow makemigrations to skip database consistency checks		290d8471bba35980f3e228f9c171afc40f2550fa	https://github.com/django/django/blob/290d8471bba35980f3e228f9c171afc40f2550fa/	
+django__django-31864	django/django	Session data cannot be decoded during the transition to Django 3.1.	#31274			
+django__django-33461	django/django	Unescaped HTML rendering in the technical 500 response via SafeString usage in Exception instance's args.	#5945			
+django__django-34176	django/django	Annotation's original field-name can clash with result field name over aggregation	#34123			
+matplotlib__matplotlib-10050	matplotlib/matplotlib	Update Legend draggable API	#9181			
+matplotlib__matplotlib-25352	matplotlib/matplotlib	MNT: Use WeakKeyDictionary and WeakSet in Grouper	#25332			
+matplotlib__matplotlib-26331	matplotlib/matplotlib	Support standard Axes in RGBAxes.	#26020,#0000			
+mwaskom__seaborn-3203	mwaskom/seaborn	Improve user feedback for errors during plot compilation	#3106,#3190			
+psf__requests-2344	psf/requests	Partially addresses Issue #1572	#1572			
+psf__requests-3481	psf/requests	Error with decode_unicode=True on streamed response	#3174			
+scikit-learn__scikit-learn-13771	scikit-learn/scikit-learn	Handle 'drop' together with None to drop estimator in VotingClassifier/VotingRegressor	#11047		https://github.com/scikit-learn/scikit-learn/pull/11047	
+scikit-learn__scikit-learn-25365	scikit-learn/scikit-learn	"sklearn.set_config(transform_output=""pandas"") breaks TSNE embeddings"	#18018,#42269			
+scikit-learn__scikit-learn-25763	scikit-learn/scikit-learn	"BUG IsotonicRegression errors with set_config(transform_output=""pandas"")"	#25365			
+sphinx-doc__sphinx-8127	sphinx-doc/sphinx	WARNING: py:class reference target not found: ..	#146	661520c1442556016e328169c81c7cd3bdc7f7c3	https://github.com/altendky/qtrio/pull/146 | https://github.com/altendky/qtrio/blob/661520c1442556016e328169c81c7cd3bdc7f7c3/	
+sphinx-doc__sphinx-8588	sphinx-doc/sphinx	autodoc_type_aliases does not support dotted name	#8315			
+sympy__sympy-11286	sympy/sympy	octave(sinc(x)) doesn't work	#11219			
+sympy__sympy-12426	sympy/sympy	DiagonalMatrix[i, j] -> 0	#12300			
+sympy__sympy-12950	sympy/sympy	as_explicit raises an error for MatMul objects (regression in sympy 1.1)		6d55b862		
+sympy__sympy-16946	sympy/sympy	is_EmptySet should be replaced by is_empty	#11522		https://github.com/sympy/sympy/pull/11522	
+sympy__sympy-19006	sympy/sympy	Deprecate sympify string fallback	#1234,#18066,#18056			
+sympy__sympy-19235	sympy/sympy	Respect `inv_trig_style` in inverse hyperbolic trig functions	#1234,#14774			
+sympy__sympy-19484	sympy/sympy	sympy cannot simplify sign(x) * abs(x)	#19277			
+sympy__sympy-21203	sympy/sympy	feat: allow assumptions to be taken for equality query	#1234,#21235			
+sympy__sympy-21309	sympy/sympy	feat(core): allow is_ge to take assumptions	#1234,#21203			
+sympy__sympy-27868	sympy/sympy	Mathematica parser fail to parse the expression contatining Greek letters: Sqrt[2]*σ	#24055,#26642,#24102			

@@ -1,0 +1,13 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local git metadata from materialized repositories
+.git/
+**/.git/
+
+# Local editor/OS files
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,70 @@
+{
+  "experience": {
+    "file": "SWEContextBench/data/SWEContextBench_Lite_Experience.parquet",
+    "rows": 300,
+    "columns": [
+      "repo",
+      "instance_id",
+      "base_commit",
+      "patch",
+      "test_patch",
+      "problem_statement",
+      "hints_text",
+      "created_at",
+      "version",
+      "FAIL_TO_PASS",
+      "PASS_TO_PASS",
+      "environment_setup_commit"
+    ],
+    "repo_counts": {
+      "django/django": 114,
+      "sympy/sympy": 77,
+      "matplotlib/matplotlib": 23,
+      "scikit-learn/scikit-learn": 23,
+      "pytest-dev/pytest": 17,
+      "sphinx-doc/sphinx": 16,
+      "astropy/astropy": 6,
+      "psf/requests": 6,
+      "pylint-dev/pylint": 6,
+      "pydata/xarray": 5,
+      "mwaskom/seaborn": 4,
+      "pallets/flask": 3
+    }
+  },
+  "related": {
+    "file": "SWEContextBench/data/SWEContextBench_Related_Lite.parquet",
+    "rows": 99,
+    "columns": [
+      "repo",
+      "instance_id",
+      "base_commit",
+      "patch",
+      "test_patch",
+      "problem_statement",
+      "hints_text",
+      "created_at",
+      "version",
+      "FAIL_TO_PASS",
+      "PASS_TO_PASS",
+      "environment_setup_commit"
+    ],
+    "repo_counts": {
+      "django/django": 36,
+      "sympy/sympy": 26,
+      "matplotlib/matplotlib": 12,
+      "scikit-learn/scikit-learn": 10,
+      "psf/requests": 3,
+      "astropy/astropy": 2,
+      "mwaskom/seaborn": 2,
+      "pydata/xarray": 2,
+      "pytest-dev/pytest": 2,
+      "sphinx-doc/sphinx": 2,
+      "pallets/flask": 1,
+      "pylint-dev/pylint": 1
+    }
+  },
+  "related_relationship_links": {
+    "rows": 118,
+    "file": "SWEContextBench/lite/related_relationship_links.tsv"
+  }
+}
