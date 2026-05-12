@@ -287,3 +287,46 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --with pytest pytest tests/swecontext_material
 - 会重命名 active fork。
 
 建议先 dry-run，再真实执行。
+
+## 两阶段 linked task 切换
+
+如果想先切到某个 related task 对应的一对一 experience task，再在下一条命令切回 related task，可以使用：
+
+```bash
+python3 -m tools.swecontext_materializer.cli activate-linked-task \
+  --related-instance-id astropy__astropy-15082 \
+  --phase experience
+```
+
+这会读取 `SWEContextBench/lite/related_relationship_links.tsv`，找到：
+
+```text
+astropy__astropy-15082 -> astropy__astropy-14995
+```
+
+然后把 active repo 切换到 experience task：
+
+```text
+wosuzyb/astropy-14995
+```
+
+下一步再运行：
+
+```bash
+python3 -m tools.swecontext_materializer.cli activate-linked-task \
+  --related-instance-id astropy__astropy-15082 \
+  --phase related
+```
+
+这会把同一个 upstream 的 active repo 切换到 related task：
+
+```text
+wosuzyb/astropy-15082
+```
+
+这个命令始终传入 related task 的 `instance_id`，通过 `--phase` 控制当前阶段：
+
+- `--phase experience`：切到一对一关联的 experience task。
+- `--phase related`：切到 related task 本身。
+
+当前只支持一对一关系。如果一个 related task 对应多个不同 experience tasks，命令会报错并停止。

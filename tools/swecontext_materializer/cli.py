@@ -7,6 +7,7 @@ from pathlib import Path
 from .active_repo import activate_task
 from .git_ops import prepare_task_checkout, push_task_checkout
 from .github_ops import create_issue, create_repo
+from .linked_tasks import build_linked_task_manifest
 from .manifest import build_manifest, read_manifest_jsonl, write_manifest_jsonl
 from .status import StatusStore
 
@@ -14,6 +15,9 @@ from .status import StatusStore
 DEFAULT_WORKDIR = Path("generated/swecontextbench-lite")
 DEFAULT_MANIFEST = DEFAULT_WORKDIR / "manifest.jsonl"
 DEFAULT_STATUS = DEFAULT_WORKDIR / "status.json"
+DEFAULT_EXPERIENCE_JSONL = Path("SWEContextBench/lite/experience.jsonl")
+DEFAULT_RELATED_JSONL = Path("SWEContextBench/lite/related.jsonl")
+DEFAULT_RELATIONSHIPS_TSV = Path("SWEContextBench/lite/related_relationship_links.tsv")
 
 
 def add_common_execution_args(parser: argparse.ArgumentParser) -> None:
@@ -138,6 +142,55 @@ def cmd_activate_task(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_activate_linked_task(args: argparse.Namespace) -> int:
+    status = StatusStore(args.status_file)
+    try:
+        task = build_linked_task_manifest(
+            args.experience_jsonl,
+            args.related_jsonl,
+            args.relationships_tsv,
+            args.owner,
+            args.related_instance_id,
+            args.phase,
+        )
+        result = activate_task(
+            [task],
+            task.instance_id,
+            cleanup_issues=args.cleanup_issues,
+            cleanup_prs=args.cleanup_prs,
+            dry_run=args.dry_run,
+        )
+        if not args.dry_run:
+            status.record_activation(
+                result.instance_id,
+                {
+                    "upstream_repo": result.upstream_repo,
+                    "active_repo": result.active_repo,
+                    "base_commit": result.base_commit,
+                    "issue_number": result.issue_number,
+                    "closed_issues": result.closed_issues,
+                    "deleted_issues": result.deleted_issues,
+                    "closed_prs": result.closed_prs,
+                    "deleted_branches": result.deleted_branches,
+                    "deleted_tags": result.deleted_tags,
+                    "cleanup_issues": args.cleanup_issues,
+                    "cleanup_prs": args.cleanup_prs,
+                    "linked_related_instance_id": args.related_instance_id,
+                    "linked_phase": args.phase,
+                    "linked_target_instance_id": result.instance_id,
+                },
+            )
+        print(
+            f"{args.related_instance_id}: {args.phase} activated "
+            f"{result.instance_id} {result.active_repo} issue={result.issue_number}"
+        )
+        return 0
+    except Exception as exc:
+        status.fail(args.related_instance_id, "activate_linked_failed", str(exc))
+        print(f"{args.related_instance_id}: activate_linked_failed: {exc}")
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="swecontext-materializer")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -179,6 +232,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     activate.add_argument("--dry-run", action="store_true")
     activate.set_defaults(func=cmd_activate_task)
+
+    linked = subparsers.add_parser("activate-linked-task")
+    linked.add_argument("--experience-jsonl", type=Path, default=DEFAULT_EXPERIENCE_JSONL)
+    linked.add_argument("--related-jsonl", type=Path, default=DEFAULT_RELATED_JSONL)
+    linked.add_argument("--relationships-tsv", type=Path, default=DEFAULT_RELATIONSHIPS_TSV)
+    linked.add_argument("--status-file", type=Path, default=DEFAULT_STATUS)
+    linked.add_argument("--owner", default="wosuzyb")
+    linked.add_argument("--related-instance-id", required=True)
+    linked.add_argument("--phase", choices=["experience", "related"], required=True)
+    linked.add_argument("--cleanup-issues", choices=["none", "delete"], default="delete")
+    linked.add_argument(
+        "--cleanup-prs",
+        choices=["none", "close", "close-and-delete-branches"],
+        default="close-and-delete-branches",
+    )
+    linked.add_argument("--dry-run", action="store_true")
+    linked.set_defaults(func=cmd_activate_linked_task)
     return parser
 
 

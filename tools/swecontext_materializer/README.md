@@ -104,3 +104,30 @@ python3 -m tools.swecontext_materializer.cli activate-task \
   --instance-id astropy__astropy-15082 \
   --dry-run
 ```
+
+## Linked Experience/Related Workflow
+
+Use `activate-linked-task` when a related task should first activate its linked
+one-to-one experience task, then activate the related task in the next command.
+
+Experience phase:
+
+```bash
+python3 -m tools.swecontext_materializer.cli activate-linked-task \
+  --related-instance-id astropy__astropy-15082 \
+  --phase experience
+```
+
+Related phase:
+
+```bash
+python3 -m tools.swecontext_materializer.cli activate-linked-task \
+  --related-instance-id astropy__astropy-15082 \
+  --phase related
+```
+
+The command reads `SWEContextBench/lite/experience.jsonl`,
+`SWEContextBench/lite/related.jsonl`, and
+`SWEContextBench/lite/related_relationship_links.tsv`. It only supports
+one-to-one related-to-experience links; multi-experience related tasks fail
+explicitly.
