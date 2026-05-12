@@ -83,6 +83,10 @@ It will:
 - force `main` to the task `base_commit`
 - create a new issue from `problem_statement`
 
+GitHub operations that commonly fail transiently during large cleanup runs, such
+as tag deletion, are retried automatically for EOF, TLS timeout, and connection
+reset errors.
+
 Cleanup controls:
 
 ```bash

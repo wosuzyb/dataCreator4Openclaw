@@ -24,6 +24,25 @@ class FakeRunner:
         return CommandResult(args=args, returncode=0, stdout=self.outputs.get(key, ""), stderr="")
 
 
+class FlakyRunner:
+    def __init__(self, failing_key: str, output_key: str):
+        self.failing_key = failing_key
+        self.output_key = output_key
+        self.calls: list[list[str]] = []
+        self.failures_seen = 0
+
+    def __call__(self, args, cwd=None, dry_run=False):
+        from tools.swecontext_materializer.commands import CommandError, CommandResult
+
+        self.calls.append(args)
+        key = " ".join(args)
+        if key == self.failing_key and self.failures_seen == 0:
+            self.failures_seen += 1
+            raise CommandError(CommandResult(args=args, returncode=1, stdout="", stderr="EOF"))
+        stdout = "v1.0\n" if key == self.output_key else ""
+        return CommandResult(args=args, returncode=0, stdout=stdout, stderr="")
+
+
 def test_find_existing_fork_name_returns_matching_parent() -> None:
     repos = [
         {"name": "astropy-15082", "isFork": True, "parent": {"nameWithOwner": "astropy/astropy"}},
@@ -131,6 +150,17 @@ def test_delete_tags_removes_all_tags() -> None:
     assert deleted == ["v1.0", "release/2024"]
     assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/tags/v1.0"] in runner.calls
     assert ["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/tags/release/2024"] in runner.calls
+
+
+def test_delete_tags_retries_transient_network_failures() -> None:
+    list_key = "gh api repos/wosuzyb/astropy-15082/tags --paginate --jq .[].name"
+    delete_key = "gh api -X DELETE repos/wosuzyb/astropy-15082/git/refs/tags/v1.0"
+    runner = FlakyRunner(failing_key=delete_key, output_key=list_key)
+
+    deleted = delete_tags("wosuzyb", "astropy-15082", runner=runner, retry_delay_seconds=0)
+
+    assert deleted == ["v1.0"]
+    assert runner.calls.count(["gh", "api", "-X", "DELETE", "repos/wosuzyb/astropy-15082/git/refs/tags/v1.0"]) == 2
 
 
 def test_create_issue_return_number_parses_url() -> None:

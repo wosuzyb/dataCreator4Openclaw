@@ -12,5 +12,19 @@
     "issue_number": 3,
     "stage": "task_activated",
     "upstream_repo": "astropy/astropy"
+  },
+  "astropy__astropy-4973": {
+    "active_repo": "wosuzyb/astropy-4973",
+    "base_commit": "d5bd3f68bb6d5ce3a61bdce9883ee750d1afade5",
+    "cleanup_issues": "delete",
+    "cleanup_prs": "close-and-delete-branches",
+    "closed_issues": [],
+    "closed_prs": [],
+    "deleted_branches": [],
+    "deleted_issues": [],
+    "deleted_tags": [],
+    "issue_number": 4,
+    "stage": "task_activated",
+    "upstream_repo": "astropy/astropy"
   }
 }

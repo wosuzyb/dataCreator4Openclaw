@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Callable
 
 from .commands import CommandError, run_command
@@ -9,6 +10,14 @@ from .models import TaskManifest
 
 
 Runner = Callable[[list[str], object | None, bool], object]
+TRANSIENT_ERROR_PATTERNS = (
+    "EOF",
+    "TLS handshake timeout",
+    "SSL_ERROR_SYSCALL",
+    "gnutls_handshake",
+    "Connection reset by peer",
+    "connection was non-properly terminated",
+)
 
 
 def full_repo_name(task: TaskManifest) -> str:
@@ -142,8 +151,22 @@ def list_tags_args(owner: str, repo_name: str) -> list[str]:
     ]
 
 
-def _run(args: list[str], runner=None, dry_run: bool = False):
-    return (runner or run_command)(args, cwd=None, dry_run=dry_run)
+def is_transient_command_error(error: CommandError) -> bool:
+    message = f"{error.result.stdout}\n{error.result.stderr}"
+    return any(pattern in message for pattern in TRANSIENT_ERROR_PATTERNS)
+
+
+def _run(args: list[str], runner=None, dry_run: bool = False, retries: int = 3, retry_delay_seconds: float = 1.0):
+    attempt = 0
+    while True:
+        try:
+            return (runner or run_command)(args, cwd=None, dry_run=dry_run)
+        except CommandError as exc:
+            attempt += 1
+            if attempt >= retries or not is_transient_command_error(exc):
+                raise
+            if retry_delay_seconds:
+                time.sleep(retry_delay_seconds)
 
 
 def find_existing_fork_name(owner: str, upstream_repo: str, runner=None, dry_run: bool = False) -> str | None:
@@ -234,14 +257,20 @@ def delete_branches_except_main(owner: str, repo_name: str, runner=None, dry_run
     return deleted
 
 
-def delete_tags(owner: str, repo_name: str, runner=None, dry_run: bool = False) -> list[str]:
-    result = _run(list_tags_args(owner, repo_name), runner, dry_run)
+def delete_tags(
+    owner: str,
+    repo_name: str,
+    runner=None,
+    dry_run: bool = False,
+    retry_delay_seconds: float = 1.0,
+) -> list[str]:
+    result = _run(list_tags_args(owner, repo_name), runner, dry_run, retry_delay_seconds=retry_delay_seconds)
     if dry_run:
         return []
     tags = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     deleted: list[str] = []
     for tag in tags:
-        _run(delete_ref_args(owner, repo_name, f"tags/{tag}"), runner, dry_run)
+        _run(delete_ref_args(owner, repo_name, f"tags/{tag}"), runner, dry_run, retry_delay_seconds=retry_delay_seconds)
         deleted.append(tag)
     return deleted
 
