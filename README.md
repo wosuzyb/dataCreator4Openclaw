@@ -330,3 +330,5 @@ wosuzyb/astropy-15082
 - `--phase related`：切到 related task 本身。
 
 当前只支持一对一关系。如果一个 related task 对应多个不同 experience tasks，命令会报错并停止。
+
+本项目暂不考虑“一个 related 对应多个 experience”的情况。原因是：当经验池需要由两个或多个历史任务共同构建时，如何组织、排序和使用这些经验仍存在不确定性，容易引入额外假设。因此当前实现只处理单个 related task 与单个 experience task 明确对应的一对一场景。

@@ -130,4 +130,7 @@ The command reads `SWEContextBench/lite/experience.jsonl`,
 `SWEContextBench/lite/related.jsonl`, and
 `SWEContextBench/lite/related_relationship_links.tsv`. It only supports
 one-to-one related-to-experience links; multi-experience related tasks fail
-explicitly.
+explicitly. This project intentionally does not model one related task linked to
+multiple experience tasks because constructing one experience pool from two or
+more historical tasks is still ambiguous and would require additional ordering
+and usage assumptions.
